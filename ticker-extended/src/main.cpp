@@ -70,16 +70,66 @@ struct ticker_logger
 
 
 /*
+ * In addition to `publish_ticker` access point we will add another one:
+ * `publish_spread`. It will require passing user-defined structure to convey
+ * a spread payload.
+ */
+struct spread_ind
+{
+    std::string symbol;
+    std::string bid;
+    std::string ask;
+};
+struct publish_spread : public cib::callback_meta<spread_ind const &>{};
+
+
+/*
+ * Just like with `publish_ticker`, for `publish_spread` we also need to define
+ * associated service.
+ */
+struct spread_service
+{
+    constexpr static auto config =
+        cib::config(cib::exports<publish_spread>);
+};
+
+/*
+ * In a similar fashion we will create a listener for `publish_spread` service.
+ */
+struct spread_processor
+{
+    constexpr static auto config =
+        cib::config(
+            cib::extend<publish_spread>(
+                [](spread_ind const & ind)
+                {
+                    fmt::print("spread_processor: {} {} {}\n",
+                        ind.symbol, ind.bid, ind.ask);
+                }
+            )
+        );
+};
+
+
+/*
  * Here we bind endpoints that together form the project. In this extended case
- * we have a single access point and two listeners.
+ * we have a `publish_ticker` access point with two listeners, and
+ * `publish_spread` access point with a single listener.
  *
  * `ticker_service[publish_ticker]` --> `ticker_processor`
  *                                  +-> `ticker_logger`
+ * `spread_service[publish_spread]` --> `spread_processor`
  */
 struct project
 {
     static constexpr auto config =
-        cib::components<ticker_service, ticker_processor, ticker_logger>;
+        cib::components<
+            ticker_service
+            , ticker_processor
+            , ticker_logger
+            , spread_service
+            , spread_processor
+        >;
 };
 
 /*
@@ -107,6 +157,13 @@ int main(int argc, char **argv)
      * is implementation-specific.
      */
     cib::service<publish_ticker>("EUR/USD", "1.10");
+
+    /*
+     * Another call, this time to `publish_spread`, will propagate spread
+     * data to `publish_spread` listeners.
+     */
+    spread_ind ind{"USD/JPY", "111.8", "111.9"};
+    cib::service<publish_spread>(ind);
 
     return EXIT_SUCCESS;
 }
