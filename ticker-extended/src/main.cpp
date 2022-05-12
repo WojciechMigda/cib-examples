@@ -53,7 +53,7 @@ struct ticker_processor
 
 /*
  * We can have more than one listener for a single access point.
- * Here we define a logger service for `ticker_publish`.
+ * Here we define a logger service for `publish_ticker`.
  */
 struct ticker_logger
 {
