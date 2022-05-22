@@ -8,3 +8,4 @@ add_subdirectory( external )
 
 add_subdirectory( ticker-basic )
 add_subdirectory( ticker-extended )
+add_subdirectory( stateful-feature )
